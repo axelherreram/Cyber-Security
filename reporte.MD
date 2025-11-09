@@ -216,120 +216,7 @@ Eliminar los endpoints de depuración en entornos de producción. Rotar inmediat
 | A.8.11 (Gestión de claves criptográficas) | Rotar inmediatamente la clave expuesta. Implementar un proceso formal para la generación, almacenamiento y uso seguro de claves criptográficas. |
 | A.8.17 (Configuración segura) | Asegurar que los entornos de desarrollo y producción estén completamente separados y que los endpoints de depuración sean inaccesibles en producción. |
 
-
-
-
-
-
-
-
-
-## Vulnerabilidad 6: [Critical] Exposición masiva de credenciales y secretos
-
-**Descripción del Riesgo:**  
-El sistema expone directamente variables de entorno (`/env`), incluyendo credenciales de base de datos, API keys y contraseñas, lo que permite a cualquier usuario no autenticado acceder a información sensible.
-
-**Impacto:**  
-Accesos no autorizados a datos sensibles y violación de la confidencialidad.
-
-**Remediación Técnica:**  
-Eliminar los endpoints que devuelvan información del entorno. Implementar un servicio de gestión de secretos (por ejemplo, HashiCorp Vault o AWS Secret Manager) y aplicar sanitización de respuestas. Asegurar que los logs no incluyan credenciales y establecer controles de acceso estrictos en la configuración del servidor.
-
-**Aspecto de la ISO/IEC 27001 (2022)**  
-| Control Relevante | Recomendación ISO 27001 para el Tratamiento |
-|--------------------|---------------------------------------------|
-| A.8.28 (Seguridad del desarrollo, prueba y aceptación) | Eliminar todos los endpoints de información del entorno (/env). Usar un gestor de secretos dedicado para almacenar credenciales sensibles en producción. |
-| A.8.25 (Prueba de seguridad en el desarrollo y aceptación) | Implementar controles de respuesta de la API que garanticen que ninguna variable de entorno o secreto sensible se devuelva, incluso en caso de error o depuración. |
-
----
-
-## Vulnerabilidad 7: [Critical] Admin Bypass Token Hardcodeado
-
-**Descripción del Riesgo:**  
-Se encontró un token de administración (`Admin_bypass_token_123`) incrustado en el código, lo que permite el acceso administrativo sin autenticación.
-
-**Impacto:**  
-Acceso administrativo completo y escalamiento de privilegios.
-
-**Remediación Técnica:**  
-Eliminar el token hardcodeado y reemplazarlo por un sistema de autenticación basado en JWT o OAuth2 con firma criptográfica. Implementar autorización por roles (RBAC) y auditar los accesos administrativos.
-
-**Aspecto de la ISO/IEC 27001 (2022)**  
-| Control Relevante | Recomendación ISO 27001 para el Tratamiento |
-|--------------------|---------------------------------------------|
-| A.5.17 (Información de autenticación) | Implementar un sistema de autenticación dinámico (como JWT o tokens de sesión) en lugar de tokens estáticos. Las credenciales deben ser gestionadas criptográficamente y no hardcodeadas. |
-| A.8.28 (Seguridad del desarrollo, prueba y aceptación) | Eliminar el secreto hardcodeado. Establecer revisiones de código regulares (peer review) para evitar la inclusión accidental de credenciales o secretos en el código fuente. |
-
----
-
-## Vulnerabilidad 8: [Critical] Ejecución SQL directa sin validación
-
-**Descripción del Riesgo:**  
-Los endpoints permiten la ejecución directa de consultas SQL sin validación ni autenticación, posibilitando la manipulación total de la base de datos.
-
-**Impacto:**  
-Manipulación o eliminación total de la base de datos por atacantes.
-
-**Remediación Técnica:**  
-Eliminar endpoints de ejecución libre. Utilizar ORM seguro (Eloquent o Query Builder con parámetros preparados) y validar exhaustivamente la entrada de usuario. Implementar un control de acceso granular a la base de datos.
-
-**Aspecto de la ISO/IEC 27001 (2022)**  
-| Control Relevante | Recomendación ISO 27001 para el Tratamiento |
-|--------------------|---------------------------------------------|
-| A.8.25 (Prueba de seguridad en el desarrollo y aceptación) | Migrar a consultas preparadas o utilizar un ORM/Query Builder seguro para separar los datos de los comandos SQL. |
-| A.8.27 (Prevención de fuga de información) | Implementar el principio de mínimo privilegio para el usuario de la base de datos de la aplicación. Auditar y bloquear el uso de comandos administrativos (como DROP TABLE) desde la aplicación. |
-
----
-
-## Vulnerabilidad 9: [Critical] Eliminación masiva de datos sin confirmación
-
-**Descripción del Riesgo:**  
-Existe un endpoint que permite borrar toda la base de datos sin autenticación ni doble confirmación.
-
-**Impacto:**  
-Pérdida total de datos y denegación del servicio (DoS).
-
-**Remediación Técnica:**  
-Implementar un proceso de confirmación en múltiples pasos, autenticación obligatoria y autorización por rol para acciones destructivas. Usar **soft delete** en lugar de eliminación física.
-
-**Aspecto de la ISO/IEC 27001 (2022)**  
-| Control Relevante | Recomendación ISO 27001 para el Tratamiento |
-|--------------------|---------------------------------------------|
-| A.5.3 (Separación de deberes) | Las acciones destructivas críticas deben requerir autorización por rol, doble confirmación (por ejemplo, contraseña o MFA), o un control dual de aprobación. |
-| A.8.12 (Copias de seguridad de la información) | Implementar copias de seguridad automáticas antes de operaciones críticas y establecer procedimientos de recuperación de datos probados y validados. |
-
----
-
-## Vulnerabilidad 10: [Critical] Exposición del APP_KEY de Laravel
-
-**Descripción del Riesgo:**  
-El valor de `APP_KEY`, utilizado para la encriptación y firma de datos en Laravel, se encuentra expuesto en los endpoints `/debug/info` y `/env`.
-
-**Impacto:**  
-Riesgo de descifrado de datos, falsificación de tokens y sesiones.
-
-**Remediación Técnica:**  
-Eliminar los endpoints de depuración en entornos de producción. Rotar inmediatamente la clave `APP_KEY` y regenerar tokens o sesiones dependientes.
-
-**Aspecto de la ISO/IEC 27001 (2022)**  
-| Control Relevante | Recomendación ISO 27001 para el Tratamiento |
-|--------------------|---------------------------------------------|
-| A.8.11 (Gestión de claves criptográficas) | Rotar inmediatamente la clave expuesta. Implementar un proceso formal para la generación, almacenamiento y uso seguro de claves criptográficas. |
-| A.8.17 (Configuración segura) | Asegurar que los entornos de desarrollo y producción estén completamente separados y que los endpoints de depuración sean inaccesibles en producción. |
-
-
-
-
-
-
-
-
-
-
-
-# Reporte Detallado de Vulnerabilidades (11 a 15)
-
-## 11. Vulnerabilidad 11: [Critical] Exposición de variables de entorno completas
+## Vulnerabilidad 11: [Critical] Exposición de variables de entorno completas
 
 * **Descripción del Riesgo:** Los endpoints /env y /api/debug/dump-state exponen todas las variables de entorno, incluyendo credenciales, API keys y secretos.
 * **Impacto:** Exposición completa de la configuración, lo que lleva al compromiso de servicios externos, bases de datos y APIs externas, y una violación masiva de la seguridad.
@@ -342,7 +229,7 @@ Eliminar los endpoints de depuración en entornos de producción. Rotar inmediat
 
 ---
 
-## 12. Vulnerabilidad 12: [Critical] Path Traversal en lectura de archivos
+## Vulnerabilidad 12: [Critical] Path Traversal en lectura de archivos
 
 * **Descripción del Riesgo:** El endpoint /api/debug/read-file y /api/admin/logs permiten la lectura de archivos arbitrarios mediante path traversal (../../) sin validación.
 * **Impacto:** Acceso no autorizado a archivos sensibles del sistema (configuración, código fuente, /etc/passwd), lo que compromete la confidencialidad.
@@ -355,7 +242,7 @@ Eliminar los endpoints de depuración en entornos de producción. Rotar inmediat
 
 ---
 
-## 13. Vulnerabilidad 13: [Critical] Inyección de comandos en backup
+## Vulnerabilidad 13: [Critical] Inyección de comandos en backup
 
 * **Descripción del Riesgo:** El endpoint de backup construye comandos shell con interpolación directa de variables, permitiendo la inyección de comandos.
 * **Impacto:** Ejecución de comandos arbitrarios, compromiso del servidor y modificación/corrupción de los backups.
@@ -368,7 +255,7 @@ Eliminar los endpoints de depuración en entornos de producción. Rotar inmediat
 
 ---
 
-## 14. Vulnerabilidad 14: [High] IDOR (Insecure Direct Object References)
+## Vulnerabilidad 14: [High] IDOR (Insecure Direct Object References)
 
 * **Descripción del Riesgo:** Los endpoints (backend/app/Http/Controllers/Accounting Controller.php L206-247) permiten acceso a recursos de otros usuarios mediante manipulación de IDs ({id}) sin verificación de propiedad.
 * **Impacto:** Acceso no autorizado a datos de otros usuarios, modificación de registros financieros y eliminación de datos críticos (violación de la Confidencialidad e Integridad).
@@ -381,7 +268,7 @@ Eliminar los endpoints de depuración en entornos de producción. Rotar inmediat
 
 ---
 
-## 15. Vulnerabilidad 15: [High] Cross-Site Scripting (XSS) Reflejado y Almacenado
+## Vulnerabilidad 15: [High] Cross-Site Scripting (XSS) Reflejado y Almacenado
 
 * **Descripción del Riesgo:** La aplicación no sanitiza outputs de usuario, permitiendo XSS reflejado en búsquedas (backend/app/Http/Controllers/AccountingController.php L100-111) y almacenado en formularios (L371-418).
 * **Impacto:** Robo de cookies de sesión, secuestro de cuentas, ejecución de código JavaScript malicioso y phishing.
@@ -404,7 +291,7 @@ Eliminar los endpoints de depuración en entornos de producción. Rotar inmediat
 
 # Reporte Detallado de Vulnerabilidades (26 a 30)
 
-## 26. Vulnerabilidad 26: [High] Falta de validación de entrada
+## Vulnerabilidad 26: [High] Falta de validación de entrada
 
 * **Descripción del Riesgo:** Múltiples controladores (AuthController, AccountingController, AdminController, DebugController) carecen de validación de input, lo que permite el ingreso de datos maliciosos.
 * **Impacto:** Posibilidad de inyección SQL, XSS, manipulación de datos y otros ataques derivados de entradas no sanitizadas.
@@ -416,7 +303,7 @@ Eliminar los endpoints de depuración en entornos de producción. Rotar inmediat
 
 ---
 
-## 27. Vulnerabilidad 27: [High] Exposición de queries SQL en respuestas
+## Vulnerabilidad 27: [High] Exposición de queries SQL en respuestas
 
 * **Descripción del Riesgo:** Múltiples controladores exponen información sensible, como `'sql_query' => $query`, en las respuestas de error.
 * **Impacto:** Permite a un atacante conocer la estructura interna de la base de datos, facilitando la explotación de inyecciones o manipulación de consultas.
@@ -428,7 +315,7 @@ Eliminar los endpoints de depuración en entornos de producción. Rotar inmediat
 
 ---
 
-## 28. Vulnerabilidad 28: [High] Exposición de logs con información sensible
+## Vulnerabilidad 28: [High] Exposición de logs con información sensible
 
 * **Descripción del Riesgo:** En `AuthController.php (L19-25)` se registran contraseñas (`password`) en los logs del sistema.
 * **Impacto:** Divulgación no autorizada de credenciales, tokens y otra información sensible, comprometiendo la confidencialidad.
@@ -440,7 +327,7 @@ Eliminar los endpoints de depuración en entornos de producción. Rotar inmediat
 
 ---
 
-## 29. Vulnerabilidad 29: [Medium] Falta de rate limiting
+## Vulnerabilidad 29: [Medium] Falta de rate limiting
 
 * **Descripción del Riesgo:** En `backend/routes/api.php (L24)` existe un comentario explícito: `"without rate limiting"`, lo que permite intentos ilimitados de autenticación o peticiones abusivas.
 * **Impacto:** Permite ataques de fuerza bruta y denegación de servicio (DoS) por falta de control en la frecuencia de solicitudes.
@@ -452,7 +339,7 @@ Eliminar los endpoints de depuración en entornos de producción. Rotar inmediat
 
 ---
 
-## 30. Vulnerabilidad 30: [Medium] Información del sistema expuesta
+## Vulnerabilidad 30: [Medium] Información del sistema expuesta
 
 * **Descripción del Riesgo:** Los endpoints `/phpinfo`, `/env`, `/api/debug/info`, `/api/admin/system-info` exponen información detallada del sistema, configuración del servidor y versiones.
 * **Impacto:** Facilita a un atacante el reconocimiento del entorno y la identificación de vulnerabilidades específicas del sistema.
