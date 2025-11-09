@@ -123,6 +123,98 @@ Ejecución arbitraria de comandos del SO, exposición de credenciales, acceso a 
 
 ---
 
+## Vulnerabilidad 6: [Critical] Exposición masiva de credenciales y secretos
+
+**Descripción del Riesgo:**  
+El sistema expone directamente variables de entorno (`/env`), incluyendo credenciales de base de datos, API keys y contraseñas, lo que permite a cualquier usuario no autenticado acceder a información sensible.
+
+**Impacto:**  
+Accesos no autorizados a datos sensibles y violación de la confidencialidad.
+
+**Remediación Técnica:**  
+Eliminar los endpoints que devuelvan información del entorno. Implementar un servicio de gestión de secretos (por ejemplo, HashiCorp Vault o AWS Secret Manager) y aplicar sanitización de respuestas. Asegurar que los logs no incluyan credenciales y establecer controles de acceso estrictos en la configuración del servidor.
+
+**Aspecto de la ISO/IEC 27001 (2022)**  
+| Control Relevante | Recomendación ISO 27001 para el Tratamiento |
+|--------------------|---------------------------------------------|
+| A.8.28 (Seguridad del desarrollo, prueba y aceptación) | Eliminar todos los endpoints de información del entorno (/env). Usar un gestor de secretos dedicado para almacenar credenciales sensibles en producción. |
+| A.8.25 (Prueba de seguridad en el desarrollo y aceptación) | Implementar controles de respuesta de la API que garanticen que ninguna variable de entorno o secreto sensible se devuelva, incluso en caso de error o depuración. |
+
+---
+
+## Vulnerabilidad 7: [Critical] Admin Bypass Token Hardcodeado
+
+**Descripción del Riesgo:**  
+Se encontró un token de administración (`Admin_bypass_token_123`) incrustado en el código, lo que permite el acceso administrativo sin autenticación.
+
+**Impacto:**  
+Acceso administrativo completo y escalamiento de privilegios.
+
+**Remediación Técnica:**  
+Eliminar el token hardcodeado y reemplazarlo por un sistema de autenticación basado en JWT o OAuth2 con firma criptográfica. Implementar autorización por roles (RBAC) y auditar los accesos administrativos.
+
+**Aspecto de la ISO/IEC 27001 (2022)**  
+| Control Relevante | Recomendación ISO 27001 para el Tratamiento |
+|--------------------|---------------------------------------------|
+| A.5.17 (Información de autenticación) | Implementar un sistema de autenticación dinámico (como JWT o tokens de sesión) en lugar de tokens estáticos. Las credenciales deben ser gestionadas criptográficamente y no hardcodeadas. |
+| A.8.28 (Seguridad del desarrollo, prueba y aceptación) | Eliminar el secreto hardcodeado. Establecer revisiones de código regulares (peer review) para evitar la inclusión accidental de credenciales o secretos en el código fuente. |
+
+---
+
+## Vulnerabilidad 8: [Critical] Ejecución SQL directa sin validación
+
+**Descripción del Riesgo:**  
+Los endpoints permiten la ejecución directa de consultas SQL sin validación ni autenticación, posibilitando la manipulación total de la base de datos.
+
+**Impacto:**  
+Manipulación o eliminación total de la base de datos por atacantes.
+
+**Remediación Técnica:**  
+Eliminar endpoints de ejecución libre. Utilizar ORM seguro (Eloquent o Query Builder con parámetros preparados) y validar exhaustivamente la entrada de usuario. Implementar un control de acceso granular a la base de datos.
+
+**Aspecto de la ISO/IEC 27001 (2022)**  
+| Control Relevante | Recomendación ISO 27001 para el Tratamiento |
+|--------------------|---------------------------------------------|
+| A.8.25 (Prueba de seguridad en el desarrollo y aceptación) | Migrar a consultas preparadas o utilizar un ORM/Query Builder seguro para separar los datos de los comandos SQL. |
+| A.8.27 (Prevención de fuga de información) | Implementar el principio de mínimo privilegio para el usuario de la base de datos de la aplicación. Auditar y bloquear el uso de comandos administrativos (como DROP TABLE) desde la aplicación. |
+
+---
+
+## Vulnerabilidad 9: [Critical] Eliminación masiva de datos sin confirmación
+
+**Descripción del Riesgo:**  
+Existe un endpoint que permite borrar toda la base de datos sin autenticación ni doble confirmación.
+
+**Impacto:**  
+Pérdida total de datos y denegación del servicio (DoS).
+
+**Remediación Técnica:**  
+Implementar un proceso de confirmación en múltiples pasos, autenticación obligatoria y autorización por rol para acciones destructivas. Usar **soft delete** en lugar de eliminación física.
+
+**Aspecto de la ISO/IEC 27001 (2022)**  
+| Control Relevante | Recomendación ISO 27001 para el Tratamiento |
+|--------------------|---------------------------------------------|
+| A.5.3 (Separación de deberes) | Las acciones destructivas críticas deben requerir autorización por rol, doble confirmación (por ejemplo, contraseña o MFA), o un control dual de aprobación. |
+| A.8.12 (Copias de seguridad de la información) | Implementar copias de seguridad automáticas antes de operaciones críticas y establecer procedimientos de recuperación de datos probados y validados. |
+
+---
+
+## Vulnerabilidad 10: [Critical] Exposición del APP_KEY de Laravel
+
+**Descripción del Riesgo:**  
+El valor de `APP_KEY`, utilizado para la encriptación y firma de datos en Laravel, se encuentra expuesto en los endpoints `/debug/info` y `/env`.
+
+**Impacto:**  
+Riesgo de descifrado de datos, falsificación de tokens y sesiones.
+
+**Remediación Técnica:**  
+Eliminar los endpoints de depuración en entornos de producción. Rotar inmediatamente la clave `APP_KEY` y regenerar tokens o sesiones dependientes.
+
+**Aspecto de la ISO/IEC 27001 (2022)**  
+| Control Relevante | Recomendación ISO 27001 para el Tratamiento |
+|--------------------|---------------------------------------------|
+| A.8.11 (Gestión de claves criptográficas) | Rotar inmediatamente la clave expuesta. Implementar un proceso formal para la generación, almacenamiento y uso seguro de claves criptográficas. |
+| A.8.17 (Configuración segura) | Asegurar que los entornos de desarrollo y producción estén completamente separados y que los endpoints de depuración sean inaccesibles en producción. |
 
 
 
