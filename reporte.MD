@@ -130,55 +130,6 @@ Ejecución arbitraria de comandos del SO, exposición de credenciales, acceso a 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Reporte Detallado de Vulnerabilidades (11 a 15)
-
 ## 11. Vulnerabilidad 11: [Critical] Exposición de variables de entorno completas
 
 * **Descripción del Riesgo:** Los endpoints /env y /api/debug/dump-state exponen todas las variables de entorno, incluyendo credenciales, API keys y secretos.
@@ -241,3 +192,196 @@ Ejecución arbitraria de comandos del SO, exposición de credenciales, acceso a 
 | :--- | :--- | :--- |
 | Prevención de vulnerabilidades de inyección. | A.8.28 (Seguridad del desarrollo, prueba y aceptación) | Aplicar codificación de salida (*output encoding*) por defecto en todas las plantillas y vistas para neutralizar cualquier dato de usuario antes de que se represente en el navegador. |
 | Configuración segura del entorno de la aplicación. | A.8.17 (Configuración segura) | Implementar una Política de Seguridad de Contenido (CSP) estricta para mitigar el impacto del XSS, limitando las fuentes desde donde se pueden cargar scripts. |
+
+# 🛡️ Resumen de Vulnerabilidades y Resolución Basada en ISO 27001/27002
+
+---
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Vulnerabilidad 36: [Medium] Exposición de `phpinfo()`
+
+### 📝 Resolución de la Vulnerabilidad (ISO 27001/27002)
+
+Esta vulnerabilidad se relaciona directamente con el control de la **Configuración Segura** y la **Gestión de Vulnerabilidades**.
+
+#### 1. Control Clave de la ISO/IEC 27002
+
+* **A.8.20 (2013) / 5.14 (2022) - Configuración Segura:**
+    * **Objetivo:** Asegurar que los sistemas de información, incluyendo el software de aplicación, estén configurados de manera segura.
+    * **Aplicación:** El uso de `phpinfo()` en producción es una **configuración insegura**.
+
+#### 2. Pasos de Remediación Basados en la ISO 27001/27002
+
+1.  **Eliminar o Desactivar la Exposición (Medida de Control):**
+    * **Acción:** Eliminar completamente el endpoint `/phpinfo` del archivo `backend/routes/web.php` en los entornos de Staging y Producción.
+    * **Justificación:** Cumple con la directriz de **Configuración Segura**.
+2.  **Restricción de Acceso (Principio de Mínimo Privilegio):**
+    * **Acción:** Si fuera estrictamente necesario, restringir el acceso mediante:
+        * **Autenticación y Autorización:** Solo para usuarios con roles de administración de sistemas.
+        * **Restricción de Acceso IP:** Permitir el acceso únicamente desde IPs internas o de VPNs de administración específicas.
+    * **Justificación:** A.9.2.3 / 5.15 (**Gestión de Derechos de Acceso**) y A.12.1.2 / 8.21 (**Seguridad de los Servicios de Red**).
+3.  **Asegurar el Proceso de Desarrollo (Gestión del Cambio):**
+    * **Acción:**
+        * **Revisión de Código (Peer Review):** Proceso obligatorio para verificar que no se incluyan funciones de diagnóstico o depuración en ramas de Staging o Producción.
+        * **Pruebas de Seguridad (Testing):** Incluir la búsqueda de endpoints de depuración en los escaneos de vulnerabilidades.
+    * **Justificación:** A.14.2.8 / 8.29 (**Desarrollo de Política de Desarrollo Seguro**) y A.14.2.2 / 8.27 (**Procedimiento de Control de Cambios**).
+
+| Referencia | Concepto de Seguridad | Relación con ISO 27001/27002 |
+| :--- | :--- | :--- |
+| **OWASP A05:2021** – Security Misconfiguration | Resultado directo de una mala configuración de seguridad. | Cubierto por el control **A.8.20 / 5.14** (Configuración Segura). |
+| **CWE-200** – Information Exposure | Exposición de información sensible (configuración de servidor, rutas). | Cubierto por controles de Acceso (**A.9**) y Gestión de Incidentes (**A.16**). |
+
+---
+
+## Vulnerabilidad 37: [Medium] Falta de validación de tipo de archivo
+
+### 📝 Resolución de la Vulnerabilidad (ISO 27001/27002)
+
+Esta vulnerabilidad afecta directamente a la **Seguridad de Aplicaciones** y al control de **Integridad**.
+
+#### 1. Control Clave de la ISO/IEC 27002
+
+* **A.14.2.5 (2013) / 8.24 (2022) - Prueba de seguridad de la información durante el desarrollo:**
+    * **Objetivo:** Asegurar que las vulnerabilidades se identifiquen y corrijan antes de la puesta en producción.
+* **A.14.2.8 (2013) / 8.29 (2022) - Desarrollo de la Política de Desarrollo Seguro:**
+    * **Objetivo:** Establecer reglas y estándares para el desarrollo de código seguro.
+    * **Aplicación:** Prohibir la confianza en las propiedades de archivos proporcionadas por el cliente (extensión o MIME type).
+
+#### 2. Pasos de Remediación Basados en la ISO 27001/27002
+
+1.  **Implementación de Controles Técnicos (Configuración Segura):**
+    * **Validación de Contenido Real (Magic Bytes):** Inspeccionar los primeros bytes del archivo (firmas) para determinar su tipo real, independientemente de la extensión.
+    * **Lista Blanca (Whitelist):** Solo permitir los tipos de archivo explícitamente requeridos (ej. `.pdf`, `.jpg`).
+    * **Cambio de Nombre y Ubicación:** Almacenar los archivos con nombre aleatorio en un **directorio no ejecutable** por el servidor web.
+2.  **Protección contra Código Malicioso (Gestión de Amenazas):**
+    * **Escaneo Antivirus:** Integrar un servicio de escaneo antivirus en el proceso de subida para bloquear scripts maliciosos.
+    * **Justificación:** **A.12.2.1 / 8.2** (**Controles contra malware**).
+3.  **Formalización del Proceso (Pruebas de Seguridad):**
+    * **Revisión de Código:** Hacer obligatorio que las funciones de subida de archivos sean revisadas específicamente para validar el *magic byte*.
+    * **Pruebas de Penetración:** Incluir pruebas de subida de archivos maliciosos en los planes de prueba de seguridad recurrentes.
+
+| Referencia | Concepto de Seguridad | Relación con ISO 27001/27002 |
+| :--- | :--- | :--- |
+| **OWASP A03:2021** – Injection | Permite la inyección de código ejecutable (webshell). | Cubierto por **A.14.2.5 / 8.24** (Prueba de Seguridad) y **A.14.2.8 / 8.29** (Desarrollo Seguro). |
+| **CWE-434** – Unrestricted Upload of File with Dangerous Type | Describe la falla al confiar en datos de entrada del cliente. | Cubierto por **A.14.2.8 / 8.29** (Desarrollo Seguro), exigiendo validación del lado del servidor. |
+
+---
+
+## Vulnerabilidad 38: [Medium] Credenciales de base de datos en `docker-compose.yml`
+
+### 📝 Resolución de la Vulnerabilidad (ISO 27001/27002)
+
+Esta vulnerabilidad se relaciona con la **Gestión de la Configuración**, el **Control de Acceso** y la **Seguridad del Desarrollo**.
+
+#### 1. Controles Clave de la ISO/IEC 27002
+
+* **A.9.4.1 (2013) / 5.10 (2022) - Control de la Información de Autenticación:**
+    * **Objetivo:** Asegurar la protección de la información de autenticación (contraseñas).
+    * **Aplicación:** Almacenar contraseñas en texto plano en un repositorio viola este control.
+* **A.14.2.8 (2013) / 8.29 (2022) - Desarrollo de Política de Desarrollo Seguro:**
+    * **Objetivo:** Prohibir las prácticas inseguras como el *hardcoding* de credenciales.
+
+#### 2. Pasos de Remediación Basados en la ISO 27001/27002
+
+1.  **Implementación de Gestión de Secretos (Medida de Control):**
+    * **Acción:** Migrar las credenciales a un sistema de gestión de secretos adecuado.
+    * **Docker:** Utilizar **Docker Secrets** o un sistema externo (ej. HashiCorp Vault) que inyecte las credenciales en tiempo de ejecución.
+    * **Transición:** El archivo que contenga secretos (ej. `.env`) debe estar listado en el `.gitignore`.
+    * **Justificación:** **A.9.4.1 / 5.10** (Proteger Autenticación) y **A.10.1.2 / 8.6** (**Gestión de Claves**).
+2.  **Rotación Inmediata de Credenciales (Gestión de Incidentes):**
+    * **Acción:** Rotar inmediatamente las credenciales expuestas (`vulnerable_password_123` y `vuln_pass_123`) en la base de datos real.
+    * **Justificación:** **A.16.1.7 / 6.8** (Recopilación de Evidencia y Toma de Decisiones de Respuesta) exige una acción correctiva inmediata.
+3.  **Auditoría de Seguridad en Desarrollo (Proceso de SGSI):**
+    * **Acción:**
+        * **Hooks de Pre-Commit/CI/CD:** Implementar herramientas automatizadas de **escaneo de secretos** (linters) en el pipeline para detener *commits* con credenciales *hardcodeadas*.
+        * **Capacitación:** Educar a los desarrolladores sobre el manejo adecuado de secretos.
+
+| Referencia | Concepto de Seguridad | Relación con ISO 27001/27002 |
+| :--- | :--- | :--- |
+| **OWASP A05:2021** – Security Misconfiguration | El archivo de configuración incluye datos sensibles. | Cubierto por **A.8.20 / 5.14** (Configuración Segura). |
+| **CWE-798** – Use of Hard-coded Credentials | Práctica insegura de incrustar credenciales en el código/configuración. | Cubierto por **A.14.2.8 / 8.29** (Desarrollo Seguro) y **A.9.4.1 / 5.10** (Control de Autenticación). |
+
+---
+
+## Vulnerabilidad 39: [Medium] Redis sin autenticación
+
+### 📝 Resolución de la Vulnerabilidad (ISO 27001/27002)
+
+Esta vulnerabilidad incumple los principios de **Control de Acceso** y **Configuración Segura**.
+
+#### 1. Controles Clave de la ISO/IEC 27002
+
+* **A.9.2.1 (2013) / 5.15 (2022) - Gestión de Derechos de Acceso:**
+    * **Objetivo:** Restringir el acceso a la información y a las funciones de procesamiento a usuarios autorizados.
+    * **Aplicación:** Un servicio sin contraseña viola el principio de necesidad de saber.
+* **A.12.1.2 (2013) / 8.21 (2022) - Seguridad de los Servicios de Red:**
+    * **Objetivo:** Proteger los servicios de red contra el acceso no autorizado.
+    * **Aplicación:** Dejar un servicio de red como Redis sin autenticación es una falla de seguridad de red.
+
+#### 2. Pasos de Remediación Basados en la ISO 27001/27002
+
+1.  **Implementación de Autenticación (Control de Acceso):**
+    * **Acción:** Configurar una **contraseña fuerte** para Redis utilizando la directiva `requirepass`.
+    * **Integración Docker:** Inyectar esta contraseña como un **secreto de Docker** o variable de entorno segura.
+    * **Justificación:** Cumple con **A.9.2.1 / 5.15** (Gestión de Derechos de Acceso).
+2.  **Restricción de Acceso a la Red (Seguridad de Red):**
+    * **Acción:** Asegurar que Redis solo sea accesible desde la **red interna de Docker** o desde la **dirección IP del servidor de aplicaciones** (loopback o subred privada). **Nunca** debe ser expuesto al host o al público.
+    * **Justificación:** **A.12.1.2 / 8.21** (Seguridad de los Servicios de Red) exige controles de acceso a la red (firewalls).
+3.  **Uso de Cifrado (Protección de Comunicaciones):**
+    * **Acción:** Si el servicio fuese accesible a través de una red no confiable, se debe implementar **TLS/SSL (cifrado)** para proteger el tráfico de datos.
+    * **Justificación:** **A.10.1.1 / 5.23** (Cifrado).
+
+| Referencia | Concepto de Seguridad | Relación con ISO 27001/27002 |
+| :--- | :--- | :--- |
+| **OWASP A05:2021** – Security Misconfiguration | Configuración predeterminada insegura del servicio. | Cubierto por **A.8.20 / 5.14** (Configuración Segura), que requiere la eliminación de configuraciones por defecto inseguras. |
+| **CWE-306** – Missing Authentication for Critical Function | Ausencia de un mecanismo de autenticación para acceso a datos críticos (cache/sesiones). | Cubierto por **A.9.2.1 / 5.15** (Gestión de Derechos de Acceso). |
+
+---
+
+## Vulnerabilidad 40: [Medium] Falta de logging de eventos de seguridad
+
+### 📝 Resolución de la Vulnerabilidad (ISO 27001/27002)
+
+Esta vulnerabilidad viola los requisitos de **Monitoreo**, **Revisión** y **Gestión de Incidentes**.
+
+#### 1. Control Clave de la ISO/IEC 27002
+
+* **A.12.4.1 (2013) / 8.16 (2022) - Registro de Eventos (Logging):**
+    * **Objetivo:** Asegurar que las actividades de los usuarios, excepciones y **eventos de seguridad** sean registrados para ayudar en la detección y el análisis forense.
+    * **Aplicación:** La ausencia de registro de eventos críticos (inicios de sesión, acciones administrativas) es una violación directa de este control.
+
+#### 2. Pasos de Remediación Basados en la ISO 27001/27002
+
+1.  **Definición y Captura de Eventos Críticos (A.12.4.1 / 8.16):**
+    * **Acción:** Implementar un sistema de logging **estructurado y detallado** para registrar, como mínimo:
+        * Eventos de **Autenticación** (exitosos y fallidos).
+        * Cambios de **Privilegios** (asignación/revocación de roles).
+        * Actividades **Administrativas**.
+        * Acceso a **Datos Sensibles**.
+    * **Justificación:** El registro debe ser útil para futuras investigaciones forenses.
+2.  **Gestión, Almacenamiento y Protección de Logs (A.12.4.2 / 8.17):**
+    * **Acción:**
+        * **Centralización:** Enviar los logs a un sistema centralizado **SIEM** (Security Event and Information Management).
+        * **Protección de Integridad:** Proteger los logs contra manipulación (servidor externo de solo anexión).
+        * **Retención:** Establecer una política de retención clara.
+    * **Justificación:** **A.12.4.2 / 8.17** (**Protección de la Información de Registro**) exige que la evidencia esté protegida contra la manipulación.
+3.  **Monitoreo y Respuesta a Incidentes (A.16.1.7 / 6.8):**
+    * **Acción:** Implementar **alertas automáticas** en el sistema SIEM (ej. alerta por múltiples inicios de sesión fallidos).
+    * **Justificación:** **A.16.1.7 / 6.8** (Recopilación de Evidencia y Toma de Decisiones de Respuesta) requiere la capacidad de detectar incidentes, lo cual depende del logging efectivo.
+
+| Referencia | Concepto de Seguridad | Relación con ISO 27001/27002 |
+| :--- | :--- | :--- |
+| **OWASP A09:2021** – Security Logging and Monitoring Failures | La falla en el logging previene la detección y respuesta a incidentes. | Cubierto por **A.12.4.1 / 8.16** (Registro de Eventos) y **A.16.1.7 / 6.8** (Respuesta a Incidentes). |
+| **CWE-778** – Insufficient Logging | La aplicación no proporciona el nivel de detalle necesario para la investigación forense. | Cubierto por **A.12.4.1 / 8.16**, que exige registrar información suficiente. |
+
