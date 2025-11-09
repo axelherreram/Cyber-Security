@@ -1,203 +1,61 @@
-# 🧾 Reporte de Vulnerabilidades
----
+# Reporte Detallado de Vulnerabilidades (26 a 30)
 
-## Vulnerabilidad 1 — [Critical] Contraseñas almacenadas en texto plano
+## 26. Vulnerabilidad 26: [High] Falta de validación de entrada
 
-**Descripción del Riesgo**
-La tabla `users` almacena contraseñas sin hashing, permitiendo su recuperación directa en caso de filtración de la base de datos o acceso no autorizado.
-
-**Impacto**
-Compromiso inmediato de todas las cuentas y posible escalada de privilegios. Violación de normativas de privacidad (por ejemplo, GDPR, PCI-DSS).
-
-**Remediación Técnica**
-
-* Implementar hashing robusto y salado (Argon2 o bcrypt) usando funciones nativas del framework (por ejemplo `Hash::make` en Laravel).
-* Forzar cambio de contraseña en el próximo inicio de sesión y/o enviar proceso de restablecimiento seguro para todas las cuentas.
-* Eliminar cualquier almacenamiento de contraseñas en sesiones o respuestas API.
-* Asegurar tránsito con TLS/HTTPS.
-* Auditar repositorios y backups para evitar contraseñas en claro.
-
-**Aspecto ISO/IEC 27001 (2022)**
-
-| Control relevante                     | Recomendación para el tratamiento                                                                           |
-| ------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| A.5.17 (Información de autenticación) | Implementar hashing unidireccional y salado (Argon2/bcrypt). Políticas de complejidad, longitud y rotación. |
-| A.8.24 (Uso de criptografía)          | Asegurar almacenamiento criptográfico aprobado y protección en tránsito (TLS/HTTPS).                        |
-
----
-
-## Vulnerabilidad 2 — [Critical] Rutas API sin autenticación ni autorización
-
-**Descripción del Riesgo**
-Múltiples rutas API críticas (ej. `/api/auth/admin-login` y módulos contables) carecen de middleware de autenticación/autorización. Se detectó un token de bypass estático (`admin_bypass_token_123`).
-
-**Impacto**
-Acceso total a datos y funciones administrativas por actores no autenticados; compromiso completo del sistema.
-
-**Remediación Técnica**
-
-* Aplicar middleware de autenticación (p. ej. Sanctum/Passport en Laravel).
-* Implementar autorización por roles y políticas (RBAC) y principio de mínimo privilegio.
-* Eliminar cualquier token o mecanismo de bypass estático y revisar el historial de commits.
-* Revisar y proteger rutas en `backend/routes/web.php` (ej. líneas indicadas: `L49-55`).
-* Añadir logging y alertas a accesos administrativos.
-
-**Aspecto ISO/IEC 27001 (2022)**
-
-| Control relevante                                       | Recomendación para el tratamiento                                                       |
-| ------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| A.5.15 (Control de acceso) / A.8.2 (Derechos de acceso) | Implementar autenticación obligatoria para endpoints sensibles; RBAC.                   |
-| A.8.5 (Autenticación segura)                            | Usar mecanismos de autenticación de alta entropía; prohibir tokens estáticos de bypass. |
-
----
-
-## Vulnerabilidad 3 — [Critical] SQL Injection en múltiples endpoints
-
-**Descripción del Riesgo**
-Se usan consultas SQL mediante interpolación directa de strings (ej. `username = '$username' AND password = '$password'`), permitiendo inyección SQL.
-
-**Impacto**
-Bypass de autenticación, extracción o manipulación masiva de datos (finanzas, usuarios), y posible ejecución de comandos a través de vectores encadenados.
-
-**Remediación Técnica**
-
-* Reescribir consultas usando Eloquent ORM o Query Builder con parámetros preparados (prepared statements).
-* Añadir validación y saneamiento de entrada en todos los endpoints (whitelisting cuando sea posible).
-* Implementar pruebas de seguridad automatizadas (SAST/DAST) que detecten inyecciones.
-* Revisar logs y auditorías por indicios de explotación.
-
-**Aspecto ISO/IEC 27001 (2022)**
-
-| Control relevante                                      | Recomendación para el tratamiento                                       |
-| ------------------------------------------------------ | ----------------------------------------------------------------------- |
-| A.8.28 (Seguridad del desarrollo, prueba y aceptación) | Aplicar principios de desarrollo seguro; usar consultas parametrizadas. |
-| A.8.25 (Validación de entrada de aplicación)           | Implementar validación, saneamiento y desinfección de inputs.           |
-
----
-
-## Vulnerabilidad 4 — [Critical] Ejecución Remota de Código (RCE) vía `eval()`
-
-**Descripción del Riesgo**
-El endpoint `/api/debug/php-execute` ejecuta directamente código PHP (`eval($code);`) sin autenticación ni validación.
-
-**Impacto**
-Ejecución arbitraria de código PHP con privilegios del servidor web. Compromiso total del servidor y riesgo de pivot a otros sistemas.
-
-**Remediación Técnica**
-
-* **Eliminar completamente** el endpoint y cualquier uso de `eval()` en producción.
-* Mantener funcionalidades de depuración únicamente en entornos de desarrollo/QA con controles estrictos.
-* Revisar el repositorio para remover código de depuración antes del despliegue.
-* Auditar permisos y asegurar separación entre entornos dev/prod.
-
-**Aspecto ISO/IEC 27001 (2022)**
-
-| Control relevante                   | Recomendación para el tratamiento                                                    |
-| ----------------------------------- | ------------------------------------------------------------------------------------ |
-| A.8.9 (Gestión de la configuración) | Prohibir funciones inseguras (eval) en producción; mantener configuraciones seguras. |
-| A.8.21 (Separación de entornos)     | Asegurar que código de depuración no sea accesible en producción.                    |
-
----
-
-## Vulnerabilidad 5 — [Critical] Ejecución Remota de Comandos (RCE) vía `shell_exec()`
-
-**Descripción del Riesgo**
-Endpoints (`/api/debug/execute-command`, `/api/admin/execute`) ejecutan comandos del sistema vía `shell_exec($command . ' 2>&1')` sin sanitización.
-
-**Impacto**
-Ejecución arbitraria de comandos del SO, exposición de credenciales, acceso a archivos sensibles y compromiso del servidor.
-
-**Remediación Técnica**
-
-* **Eliminar** estos endpoints en producción.
-* Si la ejecución de comandos es imprescindible para operaciones administrativas, reemplazar por APIs internas seguras con whitelist de comandos y autenticación mutua, además de ejecución en contenedores/entornos con privilegios mínimos.
-* Auditar permisos del usuario de la aplicación (p. ej. `www-data`) y reducir al mínimo necesario.
-* Implementar monitoreo y alertas para ejecuciones de comandos inusuales.
-
-**Aspecto ISO/IEC 27001 (2022)**
-
-| Control relevante                                      | Recomendación para el tratamiento                                                 |
-| ------------------------------------------------------ | --------------------------------------------------------------------------------- |
-| A.8.28 (Seguridad del desarrollo, prueba y aceptación) | Evitar funciones que ejecuten shells; usar APIs seguras y con menor privilegio.   |
-| A.8.4 (Sistema operativo de seguridad)                 | Ejecutar servidor web con mínimos privilegios; limitar capacidad de `shell_exec`. |
-
----
-
-
-
-
-
-
-
-
-# Reporte Detallado de Vulnerabilidades (41 a 45)
-
-## 41. Vulnerabilidad 41: [Low] Exposición de rutas de archivos en errores
-
-* **Descripción del Riesgo:** Los mensajes de error revelan rutas internas del sistema, exponiendo la estructura del servidor y detalles del entorno.
-* **Impacto:** Permite a un atacante obtener información sobre la estructura de directorios, posibles rutas sensibles y configuraciones internas del sistema.
-* **Remediación Técnica:** Configurar manejo seguro de errores. Mostrar mensajes genéricos al usuario y registrar detalles técnicos únicamente en logs protegidos de acceso restringido.
+* **Descripción del Riesgo:** Múltiples controladores (AuthController, AccountingController, AdminController, DebugController) carecen de validación de input, lo que permite el ingreso de datos maliciosos.
+* **Impacto:** Posibilidad de inyección SQL, XSS, manipulación de datos y otros ataques derivados de entradas no sanitizadas.
+* **Remediación Técnica:** Implementar *Form Requests* de Laravel con validación estricta. Utilizar una lista blanca (*whitelist*) para aceptar únicamente datos válidos y esperados.
 
 | Aspecto de la ISO/IEC 27001 (2022) | Control Relevante | Recomendación ISO 27001 para el Tratamiento |
 | :--- | :--- | :--- |
-| Manejo seguro de errores y excepciones. | A.8.12 (Registro de eventos) | Implementar un sistema de manejo de errores centralizado que capture las excepciones sin exponer información sensible al usuario final. |
-| Protección de información sensible en logs. | A.8.16 (Monitoreo de actividades) | Asegurar que los logs que contengan información técnica o rutas del sistema estén protegidos mediante controles de acceso. |
-| Seguridad del desarrollo y pruebas. | A.14.2.5 (Seguridad en los procesos de desarrollo) | Evitar el despliegue de configuraciones de depuración o mensajes detallados en entornos de producción. |
+| Validación de entrada y control de acceso a nivel de aplicación. | A.8.5 (Control de acceso a nivel de aplicación) | Aplicar validación de datos de entrada en todos los endpoints. Implementar *Form Requests* para asegurar que solo los datos esperados sean procesados. |
 
 ---
 
-## 42. Vulnerabilidad 42: [Low] Falta de timeout en sesiones
+## 27. Vulnerabilidad 27: [High] Exposición de queries SQL en respuestas
 
-* **Descripción del Riesgo:** Las sesiones de usuario no expiran automáticamente después de un periodo de inactividad.
-* **Impacto:** Aumenta el riesgo de secuestro de sesión y acceso no autorizado a cuentas activas en dispositivos desatendidos.
-* **Remediación Técnica:** Configurar un tiempo de expiración automático para las sesiones. Regenerar periódicamente el ID de sesión e invalidar las inactivas.
+* **Descripción del Riesgo:** Múltiples controladores exponen información sensible, como `'sql_query' => $query`, en las respuestas de error.
+* **Impacto:** Permite a un atacante conocer la estructura interna de la base de datos, facilitando la explotación de inyecciones o manipulación de consultas.
+* **Remediación Técnica:** Eliminar toda exposición de consultas SQL en mensajes de error. Implementar mensajes genéricos y seguros en entornos de producción.
 
 | Aspecto de la ISO/IEC 27001 (2022) | Control Relevante | Recomendación ISO 27001 para el Tratamiento |
 | :--- | :--- | :--- |
-| Gestión de sesiones seguras. | A.5.17 (Gestión de identidad y autenticación) | Establecer políticas de expiración de sesión adecuadas y regeneración de tokens tras autenticación o cambios críticos. |
-| Protección contra accesos no autorizados. | A.5.16 (Control de acceso a la información) | Forzar la invalidación de sesiones inactivas y aplicar logout automático tras un periodo definido. |
-| Seguridad del entorno de aplicación. | A.8.23 (Gestión de sesiones en aplicaciones web) | Implementar un control de sesión robusto que impida el uso prolongado de tokens o cookies sin renovación. |
+| Pruebas de seguridad en desarrollo y aceptación. | A.8.20 (Pruebas de seguridad en el desarrollo y aceptación) | Asegurar que los mensajes de error no revelen información sensible ni estructuras internas de la aplicación o base de datos. |
 
 ---
 
-## 43. Vulnerabilidad 43: [Low] Permisos solo en cliente
+## 28. Vulnerabilidad 28: [High] Exposición de logs con información sensible
 
-* **Descripción del Riesgo:** Las validaciones de permisos se realizan únicamente en el lado del cliente (frontend), lo que permite manipulación y acceso no autorizado a funciones o datos.
-* **Impacto:** Permite a un atacante eludir restricciones y acceder a funcionalidades o información restringida mediante la manipulación del cliente.
-* **Remediación Técnica:** Implementar validaciones de permisos y roles en el servidor. No confiar en las validaciones del lado del cliente.
+* **Descripción del Riesgo:** En `AuthController.php (L19-25)` se registran contraseñas (`password`) en los logs del sistema.
+* **Impacto:** Divulgación no autorizada de credenciales, tokens y otra información sensible, comprometiendo la confidencialidad.
+* **Remediación Técnica:** No registrar información sensible como contraseñas o tokens. Implementar rotación, control de acceso y encriptación de logs.
 
 | Aspecto de la ISO/IEC 27001 (2022) | Control Relevante | Recomendación ISO 27001 para el Tratamiento |
 | :--- | :--- | :--- |
-| Control de acceso y autorización. | A.5.16 (Control de acceso) | Asegurar que toda verificación de permisos se ejecute en el servidor antes de permitir operaciones críticas. |
-| Seguridad del desarrollo de software. | A.8.28 (Seguridad del desarrollo, prueba y aceptación) | Implementar políticas de autorización en el backend (por ejemplo, middleware o policies) y no depender de la lógica del cliente. |
-| Validación de seguridad en procesos de desarrollo. | A.14.2.1 (Principios de seguridad en el desarrollo) | Aplicar controles de acceso en capas múltiples y auditar periódicamente la lógica de autorización. |
+| Almacenamiento seguro de secretos. | A.8.21 (Almacenamiento seguro de secretos) | Configurar políticas de logging seguras que impidan el registro de información sensible. Aplicar encriptación y rotación de logs. |
 
 ---
 
-## 44. Vulnerabilidad 44: [Low] Falta de validación de contenido XML (XXE)
+## 29. Vulnerabilidad 29: [Medium] Falta de rate limiting
 
-* **Descripción del Riesgo:** Los parsers XML permiten entidades externas (XXE), lo que podría provocar lectura de archivos locales o ataques SSRF.
-* **Impacto:** Permite exposición de archivos del sistema, denegación de servicio o acceso no autorizado a recursos internos.
-* **Remediación Técnica:** Deshabilitar la carga de entidades externas en parsers XML. Usar parsers seguros y validar/sanitizar toda entrada XML.
+* **Descripción del Riesgo:** En `backend/routes/api.php (L24)` existe un comentario explícito: `"without rate limiting"`, lo que permite intentos ilimitados de autenticación o peticiones abusivas.
+* **Impacto:** Permite ataques de fuerza bruta y denegación de servicio (DoS) por falta de control en la frecuencia de solicitudes.
+* **Remediación Técnica:** Implementar *middleware* de Rate Limiting en todos los endpoints de autenticación y funcionalidades críticas.
 
 | Aspecto de la ISO/IEC 27001 (2022) | Control Relevante | Recomendación ISO 27001 para el Tratamiento |
 | :--- | :--- | :--- |
-| Validación de entrada y manejo seguro de datos. | A.8.25 (Validación de entrada de aplicación) | Validar y sanitizar todos los datos XML antes de su procesamiento. Deshabilitar DTD y entidades externas. |
-| Protección contra ataques de inyección. | A.8.9 (Protección de datos durante el procesamiento) | Configurar los parsers XML para impedir la resolución de recursos externos o internos. |
-| Seguridad en el ciclo de desarrollo. | A.14.2.5 (Seguridad en los procesos de desarrollo) | Utilizar librerías actualizadas y configuraciones seguras en todos los parsers XML empleados. |
+| Protección ante ataques de fuerza bruta y abuso de servicio. | A.7.4 (Sistema de gestión de contraseñas) | Aplicar limitación de intentos de acceso y políticas de bloqueo temporal tras múltiples intentos fallidos. |
 
 ---
 
-## 45. Vulnerabilidad 45: [Low] Race Conditions y fallos de lógica de negocio
+## 30. Vulnerabilidad 30: [Medium] Información del sistema expuesta
 
-* **Descripción del Riesgo:** Las operaciones financieras no son atómicas, lo que permite condiciones de carrera en transacciones concurrentes.
-* **Impacto:** Puede provocar inconsistencias en balances, duplicación de transacciones o errores en la lógica de negocio.
-* **Remediación Técnica:** Implementar transacciones ACID, validar balances antes de ejecutar operaciones y aplicar bloqueos (locks) en operaciones críticas.
+* **Descripción del Riesgo:** Los endpoints `/phpinfo`, `/env`, `/api/debug/info`, `/api/admin/system-info` exponen información detallada del sistema, configuración del servidor y versiones.
+* **Impacto:** Facilita a un atacante el reconocimiento del entorno y la identificación de vulnerabilidades específicas del sistema.
+* **Remediación Técnica:** Eliminar todos los endpoints de información y depuración en producción. Restringir su acceso solo a administradores autenticados si es estrictamente necesario.
 
 | Aspecto de la ISO/IEC 27001 (2022) | Control Relevante | Recomendación ISO 27001 para el Tratamiento |
 | :--- | :--- | :--- |
-| Integridad de los procesos y datos. | A.8.24 (Integridad de la información) | Asegurar la ejecución atómica de operaciones críticas mediante mecanismos de bloqueo y control de concurrencia. |
-| Protección de los sistemas de información. | A.14.1.2 (Seguridad en los procesos operativos) | Implementar validaciones previas y posteriores en operaciones financieras o transaccionales. |
-| Control de cambios y consistencia. | A.12.1.2 (Gestión de cambios en sistemas) | Aplicar mecanismos de auditoría y monitoreo que detecten condiciones de carrera o inconsistencias. |
+| Instalación, gestión y registro seguro de software en sistemas operativos. | A.8.18 (Instalación, gestión y registro de software en sistemas operativos) | Deshabilitar o eliminar funciones de diagnóstico en producción. Asegurar que la información del sistema solo sea accesible mediante autenticación y privilegios adecuados. |
 
 ---
