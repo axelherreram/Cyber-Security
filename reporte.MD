@@ -279,6 +279,7 @@ Eliminar los endpoints de depuración en entornos de producción. Rotar inmediat
 | Prevención de vulnerabilidades de inyección. | A.8.28 (Seguridad del desarrollo, prueba y aceptación) | Aplicar codificación de salida (*output encoding*) por defecto en todas las plantillas y vistas para neutralizar cualquier dato de usuario antes de que se represente en el navegador. |
 | Configuración segura del entorno de la aplicación. | A.8.17 (Configuración segura) | Implementar una Política de Seguridad de Contenido (CSP) estricta para mitigar el impacto del XSS, limitando las fuentes desde donde se pueden cargar scripts. |
 
+---
 
 
 
@@ -287,9 +288,124 @@ Eliminar los endpoints de depuración en entornos de producción. Rotar inmediat
 
 
 
+## ⚠️ Vulnerabilidad 21: [High] Reset de contraseña sin verificación
 
+**Descripción del Riesgo:**
+El endpoint `/api/auth/reset-password` permite cambiar contraseñas sin verificar la identidad del usuario ni validar un token de recuperación.
 
-# Reporte Detallado de Vulnerabilidades (26 a 30)
+**Impacto:**
+Compromiso de cuentas mediante cambio no autorizado de contraseñas y acceso no autorizado al sistema.
+
+**Remediación Técnica:**
+
+* Implementar **tokens de recuperación seguros y con expiración**.
+* Verificar identidad mediante **correo electrónico o SMS**.
+* Requerir **contraseña actual** para el cambio.
+* Implementar **rate limiting**.
+
+### 🧩 Aspecto ISO/IEC 27001 (2022)
+
+| Aspecto                                        | Control Relevante                         | Recomendación ISO 27001 para el Tratamiento                                                                                                                        |
+| ---------------------------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Autenticación segura y gestión de credenciales | **A.8.5 (Autenticación segura)**          | Implementar un mecanismo de recuperación de contraseña de **dos pasos** (enlace único y temporal enviado a un canal verificado, como el correo electrónico o SMS). |
+| Información de autenticación y protección      | **A.5.17 (Información de autenticación)** | Aplicar **límites de velocidad (rate limiting)** para prevenir ataques de fuerza bruta o de enumeración en el proceso de restablecimiento de contraseña.           |
+
+---
+
+## ⚠️ Vulnerabilidad 22: [High] Manipulación de sesión sin autorización
+
+**Descripción del Riesgo:**
+El endpoint `/api/debug/session` permite la manipulación completa de sesiones sin autenticación, incluyendo el establecimiento de roles de administrador.
+
+**Impacto:**
+Escalada de privilegios, secuestro de sesiones y bypass de autenticación.
+
+**Remediación Técnica:**
+
+* Eliminar **endpoint de manipulación de sesión** en producción.
+* Implementar **protección de datos críticos de sesión**.
+* Validar **cambios de rol únicamente en el servidor**.
+
+### 🧩 Aspecto ISO/IEC 27001 (2022)
+
+| Aspecto                                         | Control Relevante                                                      | Recomendación ISO 27001 para el Tratamiento                                                                                                                                          |
+| ----------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Control de acceso y gestión de la sesión        | **A.5.15 (Control de acceso)**                                         | Eliminar completamente cualquier endpoint de manipulación de sesión en producción. La información crítica de sesión (como roles de usuario) debe ser **inalterable por el usuario**. |
+| Separación de entornos y protección de sistemas | **A.8.21 (Separación de entornos de desarrollo, prueba y producción)** | Asegurar que la funcionalidad de depuración o manipulación **no sea accesible en producción**.                                                                                       |
+
+---
+
+## ⚠️ Vulnerabilidad 23: [High] Exposición de backups de base de datos
+
+**Descripción del Riesgo:**
+El endpoint `/api/admin/backup` crea backups sin encriptación y expone credenciales de base de datos en el comando ejecutado.
+
+**Impacto:**
+Exposición de credenciales en logs y procesos, backups no encriptados accesibles y compromiso completo de datos.
+
+**Remediación Técnica:**
+
+* **Encriptar backups** antes de almacenarlos.
+* **No exponer credenciales** en comandos o logs.
+* **Restringir acceso** a los backups.
+* Usar **variables de entorno** o gestores de secretos para credenciales.
+
+### 🧩 Aspecto ISO/IEC 27001 (2022)
+
+| Aspecto                                               | Control Relevante                                  | Recomendación ISO 27001 para el Tratamiento                                                                                                             |
+| ----------------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Protección contra pérdida de datos y confidencialidad | **A.8.12 (Copias de seguridad de la información)** | Los backups deben ser **cifrados en reposo y en transferencia**. Implementar pruebas periódicas de recuperación.                                        |
+| Gestión de claves criptográficas y secretos           | **A.8.11 (Gestión de claves criptográficas)**      | **Nunca exponer credenciales sensibles** (como contraseñas de DB) en comandos o logs. Usar variables de entorno protegidas o un **gestor de secretos**. |
+
+---
+
+## ⚠️ Vulnerabilidad 24: [High] Almacenamiento de sesiones en localStorage
+
+**Descripción del Riesgo:**
+El frontend almacena tokens de sesión en `localStorage`, accesible mediante JavaScript y vulnerable a ataques XSS.
+
+**Impacto:**
+Robo de tokens mediante XSS, acceso no autorizado a cuentas y persistencia de sesión vulnerable.
+
+**Remediación Técnica:**
+
+* Usar **cookies HttpOnly** para tokens.
+* Implementar **SameSite cookies**.
+* Usar **sessionStorage** en lugar de localStorage si es necesario.
+* Implementar **refresh tokens**.
+
+### 🧩 Aspecto ISO/IEC 27001 (2022)
+
+| Aspecto                                       | Control Relevante                     | Recomendación ISO 27001 para el Tratamiento                                                                                           |
+| --------------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Protección contra malware y código malicioso  | **A.8.7 (Protección contra malware)** | Almacenar tokens de sesión en **cookies HttpOnly** para hacerlos inaccesibles a scripts de frontend y mitigar robo por XSS.           |
+| Seguridad de la información en la transmisión | **A.8.19 (Seguridad de la red)**      | Implementar la directiva **Secure** y `SameSite=Strict` en las cookies de sesión para prevenir transmisión no cifrada y ataques CSRF. |
+
+---
+
+## ⚠️ Vulnerabilidad 25: [High] Exposición de información de usuario completa
+
+**Descripción del Riesgo:**
+Los endpoints retornan información completa de usuarios, incluyendo **passwords**, **API keys** y **secret keys**, sin restricción.
+
+**Impacto:**
+Exposición masiva de credenciales, compromiso de cuentas y acceso a servicios externos mediante API keys.
+
+**Remediación Técnica:**
+
+* No retornar **campos sensibles** en las respuestas.
+* Implementar **campos ocultos** en los modelos.
+* Usar **API Resources o serializadores** para filtrar datos.
+* Validar **permisos antes de exponer información**.
+
+### 🧩 Aspecto ISO/IEC 27001 (2022)
+
+| Aspecto                                        | Control Relevante              | Recomendación ISO 27001 para el Tratamiento                                                                                                                                          |
+| ---------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Control de acceso y minimización de exposición | **A.8.2 (Derechos de acceso)** | Aplicar **filtrado estricto a nivel de servidor** (usando API Resources o serializadores) para excluir siempre campos sensibles como passwords, hashes, API keys o datos personales. |
+| Principio de mínimo privilegio                 | **A.5.15 (Control de acceso)** | La respuesta de la API debe incluir **solo los datos esenciales** necesarios para la función. Campos sensibles deben ser omitidos o enmascarados por defecto.                        |
+
+---
 
 ## Vulnerabilidad 26: [High] Falta de validación de entrada
 
@@ -351,71 +467,120 @@ Eliminar los endpoints de depuración en entornos de producción. Rotar inmediat
 
 ---
 
+## ⚠️ Vulnerabilidad 31: Componentes con vulnerabilidades conocidas
 
+**Descripción del Riesgo:**
+El sistema utiliza versiones obsoletas y vulnerables de dependencias con CVEs conocidos (por ejemplo: **Laravel 8.x**, **Vue.js 2.6.14**, **Axios 0.21.1**).
 
-Informe de Soluciones a Vulnerabilidades 31-35 
+**Impacto:**
+Explotación de vulnerabilidades conocidas, falta de parches de seguridad y compromiso del sistema mediante dependencias vulnerables.
 
-Basado en los lineamientos de la ISO/IEC 27001:2022, OWASP Top 10 y prácticas de Aseguramiento de la Calidad del Software (SQA).
+**Remediación Técnica:**
 
-Vulnerabilidad 31: Componentes con vulnerabilidades conocidas
+* Actualizar a versiones soportadas: **Laravel 9.x o 10.x (LTS)**, **Vue.js 3.x**, **Axios 1.x**.
+* Implementar **escaneo automático de dependencias** (`composer audit`, `npm audit`).
+* Establecer una **política de actualización regular** y monitoreo continuo.
 
-ISO 27001 referencia: A.8.8 – Gestión de vulnerabilidades técnicas, A.9.4 – Seguridad de los sistemas de desarrollo y soporte.
-Solución técnica:
-1. Actualizar dependencias a versiones soportadas: Laravel 10 LTS, Vue 3.x, Axios 1.x.
-2. Automatizar escaneos con Dependabot, Snyk o GitHub Security Alerts.
-3. Establecer política de revisión trimestral de librerías y pruebas de regresión en QA.
-Control SQA: Verificar compatibilidad mediante pruebas unitarias y de integración.
+### 🧩 Aspecto ISO/IEC 27001 (2022)
 
-Vulnerabilidad 32: Falta de headers de seguridad HTTP
+| Aspecto                              | Control Relevante                       | Recomendación ISO 27001 para el Tratamiento                                                                                                                                  |
+| ------------------------------------ | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Gestión de vulnerabilidades técnicas | **A.8.8 (Gestión de vulnerabilidades)** | Implementar un proceso de escaneo periódico de dependencias (**SCA – Software Composition Analysis**) para identificar y actualizar/parchear componentes con CVEs conocidos. |
+| Configuración segura y mantenimiento | **A.5.28 (Actualización de software)**  | Establecer una política formal de **gestión de parches y dependencias**. Priorizar la migración a versiones con **soporte de seguridad activo (LTS)**.                       |
 
-ISO 27001 referencia: A.8.24 – Protección de la información en tránsito, A.8.23 – Seguridad de la información en los servicios de red.
-Solución técnica:
-1. Implementar middleware de headers de seguridad (CSP, X-Frame-Options, HSTS, etc.).
-2. Configurar las cabeceras también en el servidor web (Nginx o Apache).
-3. Validar con pruebas o herramientas como securityheaders.com.
-Control SQA: Agregar pruebas de cabeceras HTTP en el checklist de QA.
+---
 
-Vulnerabilidad 33: CSRF no protegido
+## ⚠️ Vulnerabilidad 32: Falta de headers de seguridad HTTP
 
-ISO 27001 referencia: A.8.28 – Seguridad de los servicios web y API, A.8.25 – Control de acceso a la información.
-Solución técnica:
-1. Aplicar middleware CSRF en rutas web y usar meta tags en formularios.
-2. En APIs REST usar JWTs con expiración corta y validar cabeceras de origen.
-3. Usar SameSite cookies para prevenir ataques.
-Control SQA: Verificar que todas las peticiones POST, PUT y DELETE incluyan tokens válidos.
+**Descripción del Riesgo:**
+La aplicación no implementa headers de seguridad cruciales como:
+`Content-Security-Policy`, `X-Frame-Options`, `X-Content-Type-Options` y `Strict-Transport-Security`.
 
-Vulnerabilidad 34: Catch-all route con información de debug
+**Impacto:**
+Vulnerabilidad frente a **clickjacking**, **MIME sniffing**, ausencia de protección contra **XSS** mediante CSP y falta de forzado de **HTTPS**.
 
-ISO 27001 referencia: A.8.12 – Registro y monitoreo de actividades, A.8.16 – Manejo de errores y excepciones.
-Solución técnica:
-1. Retornar mensajes 404 genéricos sin exponer información interna.
-2. Registrar intentos en logs internos sin mostrar al usuario.
-3. Desactivar APP_DEBUG en producción y proteger el archivo .env.
-Control SQA: Validar que respuestas 404 no incluyan estructuras internas.
+**Remediación Técnica:**
 
-Vulnerabilidad 35: Mapeo inseguro de módulos a tablas
+* Implementar **middleware** para añadir headers de seguridad.
+* Configurar una **política CSP** apropiada y estricta.
 
-ISO 27001 referencia: A.8.29 – Validación de entrada de datos, A.8.26 – Separación de entornos de desarrollo y producción.
-Solución técnica:
-1. Implementar lista blanca de módulos válidos.
-2. Evitar concatenación dinámica en consultas SQL.
-3. Validar entradas y sanitizar datos.
-4. Realizar pruebas de inyección SQL en QA.
-Control SQA: Verificar que los parámetros alterados no accedan a tablas no definidas.
-Plan general de mejora continua
-1. Establecer un proceso de revisión de código seguro (DevSecOps).
-2. Implementar un sistema de gestión de vulnerabilidades (SGV).
-3. Mantener repositorio con control de cambios documentado.
-4. Realizar pruebas de penetración y auditorías semestrales.
-5. Alinear el plan de calidad del software con controles de ISO 27001.
+### 🧩 Aspecto ISO/IEC 27001 (2022)
 
+| Aspecto                                      | Control Relevante                                                   | Recomendación ISO 27001 para el Tratamiento                                                                                                              |
+| -------------------------------------------- | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Configuración segura y hardening             | **A.8.17 (Configuración segura)**                                   | Implementar middleware para inyectar headers como `X-Content-Type-Options: nosniff` y `X-Frame-Options: DENY` para mitigar clickjacking y MIME sniffing. |
+| Protección contra código malicioso y cifrado | **A.8.23 (Seguridad en la web)** y **A.8.20 (Cifrado en tránsito)** | Configurar **Strict-Transport-Security (HSTS)** para forzar HTTPS y definir una **Content Security Policy (CSP)** estricta.                              |
 
+---
 
+## ⚠️ Vulnerabilidad 33: CSRF no protegido
 
+**Descripción del Riesgo:**
+Las rutas API no implementan protección **CSRF**, y el frontend no incluye **tokens CSRF** en las peticiones.
 
+**Impacto:**
+Exposición a ataques **Cross-Site Request Forgery**, ejecución de acciones en nombre del usuario sin consentimiento y modificación de datos desde sitios maliciosos.
 
+**Remediación Técnica:**
 
+* Implementar **tokens CSRF** para rutas web.
+* Para APIs, usar **tokens de autenticación** (JWT, API Tokens).
+* Validar el **origen de las peticiones** (ej. `SameSite=Strict`).
 
+### 🧩 Aspecto ISO/IEC 27001 (2022)
+
+| Aspecto                                  | Control Relevante                                   | Recomendación ISO 27001 para el Tratamiento                                                                                                           |
+| ---------------------------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Control de acceso y gestión de la sesión | **A.8.4 (Control de acceso a nivel de aplicación)** | Implementar protección CSRF (tokens sincronizados o cookies `SameSite=Strict`) en todas las rutas que ejecuten acciones.                              |
+| Integridad de los datos y autenticación  | **A.8.23 (Seguridad en la web)**                    | En APIs sin sesiones basadas en cookies, usar tokens de autenticación (**JWT** o **Bearer Token**) que sustituyan la necesidad de CSRF tradicionales. |
+
+---
+
+## ⚠️ Vulnerabilidad 34: Catch-all route con información de debug
+
+**Descripción del Riesgo:**
+Las rutas *catch-all* (`/{any}`) exponen información de **debug**, rutas disponibles y datos de sesión en respuestas **404**.
+
+**Impacto:**
+Enumeración de endpoints, exposición de estructura interna y posible fuga de datos de sesión.
+
+**Remediación Técnica:**
+
+* Retornar **respuestas 404 genéricas y seguras** sin información técnica.
+* No exponer estructura interna.
+* Registrar intentos de acceso no válidos sin incluirlos en la respuesta.
+
+### 🧩 Aspecto ISO/IEC 27001 (2022)
+
+| Aspecto                                      | Control Relevante                     | Recomendación ISO 27001 para el Tratamiento                                                                                              |
+| -------------------------------------------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Manejo de incidentes y fallos del sistema    | **A.8.17 (Configuración segura)**     | Configurar el framework para devolver errores 404 **sin información de depuración ni rutas internas**.                                   |
+| Registro y monitoreo de eventos de seguridad | **A.8.16 (Actividades de monitoreo)** | Registrar los accesos a rutas inexistentes como intentos potenciales de enumeración, **sin exponer estructura interna** en la respuesta. |
+
+---
+
+## ⚠️ Vulnerabilidad 35: Mapeo inseguro de módulos a tablas
+
+**Descripción del Riesgo:**
+El sistema permite el **mapeo inseguro de módulos a tablas de base de datos**, lo que podría ser manipulado por un atacante.
+
+**Impacto:**
+Acceso no autorizado a tablas, **inyección SQL** mediante nombres de tabla y modificación indebida de datos.
+
+**Remediación Técnica:**
+
+* Validar estrictamente los **nombres de módulos**.
+* Implementar una **whitelist** de tablas permitidas.
+* Aplicar el **principio de mínimo privilegio** en la base de datos.
+
+### 🧩 Aspecto ISO/IEC 27001 (2022)
+
+| Aspecto                                         | Control Relevante                                   | Recomendación ISO 27001 para el Tratamiento                                                                                         |
+| ----------------------------------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Validación de entrada y seguridad de aplicación | **A.8.25 (Validación de entrada de aplicación)**    | Implementar una **lista blanca** de nombres de tablas permitidas para prevenir inyección de nombres maliciosos.                     |
+| Control de acceso a bases de datos              | **A.8.4 (Control de acceso a nivel de aplicación)** | Asegurar que la cuenta de base de datos tenga acceso **solo a las tablas necesarias**, siguiendo el principio de mínimo privilegio. |
+
+---
 
 ## Vulnerabilidad 36: [Medium] Exposición de `phpinfo()`
 
@@ -593,17 +758,6 @@ Esta vulnerabilidad viola los requisitos de **Monitoreo**, **Revisión** y **Ges
 | **OWASP A09:2021** – Security Logging and Monitoring Failures | La falla en el logging previene la detección y respuesta a incidentes. | Cubierto por **A.12.4.1 / 8.16** (Registro de Eventos) y **A.16.1.7 / 6.8** (Respuesta a Incidentes). |
 | **CWE-778** – Insufficient Logging | La aplicación no proporciona el nivel de detalle necesario para la investigación forense. | Cubierto por **A.12.4.1 / 8.16**, que exige registrar información suficiente. |
 
-
-
-
-
-
-
-
-
-
-
-# Reporte Detallado de Vulnerabilidades (41 a 45)
 
 ## 41. Vulnerabilidad 41: [Low] Exposición de rutas de archivos en errores
 
