@@ -353,6 +353,63 @@ Eliminar los endpoints de depuración en entornos de producción. Rotar inmediat
 
 
 
+Informe de Soluciones a Vulnerabilidades 31-35 
+
+Basado en los lineamientos de la ISO/IEC 27001:2022, OWASP Top 10 y prácticas de Aseguramiento de la Calidad del Software (SQA).
+
+Vulnerabilidad 31: Componentes con vulnerabilidades conocidas
+
+ISO 27001 referencia: A.8.8 – Gestión de vulnerabilidades técnicas, A.9.4 – Seguridad de los sistemas de desarrollo y soporte.
+Solución técnica:
+1. Actualizar dependencias a versiones soportadas: Laravel 10 LTS, Vue 3.x, Axios 1.x.
+2. Automatizar escaneos con Dependabot, Snyk o GitHub Security Alerts.
+3. Establecer política de revisión trimestral de librerías y pruebas de regresión en QA.
+Control SQA: Verificar compatibilidad mediante pruebas unitarias y de integración.
+
+Vulnerabilidad 32: Falta de headers de seguridad HTTP
+
+ISO 27001 referencia: A.8.24 – Protección de la información en tránsito, A.8.23 – Seguridad de la información en los servicios de red.
+Solución técnica:
+1. Implementar middleware de headers de seguridad (CSP, X-Frame-Options, HSTS, etc.).
+2. Configurar las cabeceras también en el servidor web (Nginx o Apache).
+3. Validar con pruebas o herramientas como securityheaders.com.
+Control SQA: Agregar pruebas de cabeceras HTTP en el checklist de QA.
+
+Vulnerabilidad 33: CSRF no protegido
+
+ISO 27001 referencia: A.8.28 – Seguridad de los servicios web y API, A.8.25 – Control de acceso a la información.
+Solución técnica:
+1. Aplicar middleware CSRF en rutas web y usar meta tags en formularios.
+2. En APIs REST usar JWTs con expiración corta y validar cabeceras de origen.
+3. Usar SameSite cookies para prevenir ataques.
+Control SQA: Verificar que todas las peticiones POST, PUT y DELETE incluyan tokens válidos.
+
+Vulnerabilidad 34: Catch-all route con información de debug
+
+ISO 27001 referencia: A.8.12 – Registro y monitoreo de actividades, A.8.16 – Manejo de errores y excepciones.
+Solución técnica:
+1. Retornar mensajes 404 genéricos sin exponer información interna.
+2. Registrar intentos en logs internos sin mostrar al usuario.
+3. Desactivar APP_DEBUG en producción y proteger el archivo .env.
+Control SQA: Validar que respuestas 404 no incluyan estructuras internas.
+
+Vulnerabilidad 35: Mapeo inseguro de módulos a tablas
+
+ISO 27001 referencia: A.8.29 – Validación de entrada de datos, A.8.26 – Separación de entornos de desarrollo y producción.
+Solución técnica:
+1. Implementar lista blanca de módulos válidos.
+2. Evitar concatenación dinámica en consultas SQL.
+3. Validar entradas y sanitizar datos.
+4. Realizar pruebas de inyección SQL en QA.
+Control SQA: Verificar que los parámetros alterados no accedan a tablas no definidas.
+Plan general de mejora continua
+1. Establecer un proceso de revisión de código seguro (DevSecOps).
+2. Implementar un sistema de gestión de vulnerabilidades (SGV).
+3. Mantener repositorio con control de cambios documentado.
+4. Realizar pruebas de penetración y auditorías semestrales.
+5. Alinear el plan de calidad del software con controles de ISO 27001.
+
+
 
 
 
