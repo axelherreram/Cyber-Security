@@ -353,7 +353,7 @@ Eliminar los endpoints de depuración en entornos de producción. Rotar inmediat
 
 
 
-Informe de Soluciones a Vulnerabilidades 31-35
+Informe de Soluciones a Vulnerabilidades 31-35 
 
 Basado en los lineamientos de la ISO/IEC 27001:2022, OWASP Top 10 y prácticas de Aseguramiento de la Calidad del Software (SQA).
 
