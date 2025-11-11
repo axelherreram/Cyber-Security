@@ -281,12 +281,114 @@ Eliminar los endpoints de depuración en entornos de producción. Rotar inmediat
 
 ---
 
+# ⚠️ Vulnerabilidad 16: [High] CORS extremadamente permisivo 
 
+# Descripción del Riesgo: 
+La configuración de CORS permite solicitudes desde cualquier origen (*), con soporte de credenciales habilitado.
 
+# Impacto: 
+Ataques Cross-Site Request Forgery (CSRF) facilitados, exposición de credenciales y sesiones, y robo de datos mediante peticiones cross-origin.
 
+# Remediación Técnica:
+Restringir orígenes permitidos a dominios específicos.
+Deshabilitar supports_credentials o usarlo solo con orígenes confiables.
+Implementar validación estricta de origen en backend.
 
+# Aspecto ISO/IEC 27001 (2022)
+Aspecto	Control Relevante	Recomendación ISO 27001 para el Tratamiento
+Configuración segura de sistemas y software	A.8.17 (Configuración segura)	Restringir la whitelist de orígenes (DOMAINS) a dominios legítimos. Evitar Access-Control-Allow-Origin: * en respuestas sensibles.
+Seguridad de la información en redes	A.8.19 (Seguridad de la red)	Validar el encabezado Origin en backend y restringir supports_credentials en CORS.
 
+---
 
+# ⚠️ Vulnerabilidad 17: [High] Subida de archivos sin validación 
+
+# Descripción del Riesgo:
+El endpoint /api/upload permite subir cualquier tipo de archivo sin validar tipo, tamaño o contenido, almacenándolos en un directorio público.
+
+# Impacto:
+Subida de shells PHP maliciosos, ejecución remota de código, ataques DoS y almacenamiento de contenido peligroso.
+
+# Remediación Técnica:
+
+Validar tipo MIME y extensión.
+Establecer tamaño máximo permitido.
+Renombrar archivos con nombres seguros y únicos.
+Almacenar fuera del directorio web público.
+Escanear archivos con antivirus.
+
+# Aspecto ISO/IEC 27001 (2022)
+Aspecto	Control Relevante	Recomendación ISO 27001 para el Tratamiento
+Prevención de código malicioso y control de activos	A.8.7 (Protección contra malware)	Validar tipo y extensión antes de almacenar. Mantener archivos fuera del alcance público.
+Validación de entrada segura	A.8.25 (Validación de entrada de aplicación)	Limitar tamaño de archivos y usar nombres aleatorios (hash) para prevenir DoS y colisiones.
+
+---
+
+# ⚠️ Vulnerabilidad 18: [High] Gestión insegura de sesiones
+
+# Descripción del Riesgo:
+Las sesiones almacenan información sensible (contraseñas), no expiran y usan tokens predecibles (base64(username + timestamp)).
+
+# Impacto:
+Secuestro de sesión, exposición de contraseñas y sesiones que nunca expiran.
+
+# Remediación Técnica:
+
+Usar tokens seguros (JWT firmados).
+No almacenar contraseñas en sesiones.
+Implementar timeout de sesión.
+Configurar cookies con flags HttpOnly y Secure.
+
+# Aspecto ISO/IEC 27001 (2022)
+Aspecto	Control Relevante	Recomendación ISO 27001 para el Tratamiento
+Autenticación segura y protección de tokens	A.8.5 (Autenticación segura)	Usar tokens aleatorios o JWT firmados. Nunca incluir datos sensibles en tokens.
+Control de acceso y duración de sesión	A.5.18 (Control de acceso a nivel de red y aplicación)	Establecer tiempos máximos e inactividad. Cookies con HttpOnly y Secure.
+
+---
+
+# ⚠️ Vulnerabilidad 19: [High] Debug mode habilitado en producción
+
+# Descripción del Riesgo:
+El modo debug está habilitado (APP_DEBUG=true), exponiendo stack traces, queries SQL e información sensible.
+
+# Impacto:
+Exposición de estructura interna, datos de configuración y ayuda a atacantes a identificar vulnerabilidades.
+
+# Remediación Técnica:
+
+Deshabilitar debug en producción (APP_DEBUG=false).
+Usar APP_ENV=production.
+Implementar manejo genérico de errores.
+Asegurar logging seguro sin información sensible.
+
+# Aspecto ISO/IEC 27001 (2022)
+Aspecto	Control Relevante	Recomendación ISO 27001 para el Tratamiento
+Seguridad de la configuración	A.8.17 (Configuración segura)	Deshabilitar APP_DEBUG en producción y restringir errores detallados.
+Seguridad de desarrollo y logging	A.8.28 (Seguridad del desarrollo, prueba y aceptación)	Implementar manejo de errores genérico y logs protegidos.
+
+---
+
+# ⚠️ Vulnerabilidad 20: [High] Credenciales débiles por defecto
+
+# Descripción del Riesgo:
+El sistema usa credenciales por defecto (admin/admin123, user1/password123).
+
+# Impacto:
+Acceso no autorizado y escalada de privilegios mediante contraseñas conocidas.
+
+# Remediación Técnica:
+
+Forzar cambio de contraseña en primer inicio de sesión.
+Deshabilitar cuentas por defecto.
+Aplicar política de contraseñas fuertes.
+Implementar autenticación multifactor (MFA).
+
+# Aspecto ISO/IEC 27001 (2022)
+Aspecto	Control Relevante	Recomendación ISO 27001 para el Tratamiento
+Protección de información de autenticación	A.5.17 (Información de autenticación)	Obligar cambio de contraseñas predeterminadas y eliminar cuentas por defecto.
+Requisitos de autenticación segura	A.8.5 (Autenticación segura)	Exigir contraseñas complejas y MFA.
+
+---
 
 ## ⚠️ Vulnerabilidad 21: [High] Reset de contraseña sin verificación
 
